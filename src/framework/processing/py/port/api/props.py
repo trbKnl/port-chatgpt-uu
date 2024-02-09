@@ -94,11 +94,13 @@ class PropsUIPromptConsentFormTable:
         id: a unique string to itentify the table after donation
         title: title of the table
         data_frame: table to be shown
+        visualizations: optional visualizations to be shown. (see TODO for input format)
     """
 
     id: str
     title: Translatable
     data_frame: pd.DataFrame
+    visualizations: Optional[list] = None
 
     def toDict(self):
         dict = {}
@@ -106,6 +108,8 @@ class PropsUIPromptConsentFormTable:
         dict["id"] = self.id
         dict["title"] = self.title.toDict()
         dict["data_frame"] = self.data_frame.to_json()
+        if self.visualizations:
+            dict["visualizations"] = self.visualizations.to_json()
         return dict
 
 
