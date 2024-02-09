@@ -110,7 +110,7 @@ class PropsUIPromptConsentFormTable:
         dict["title"] = self.title.toDict()
         dict["data_frame"] = self.data_frame.to_json()
         dict["description"] = self.description.toDict() if self.description else None
-        dict["visualizations"] = self.visualizations.toDict() if self.visualizations else None
+        dict["visualizations"] = self.visualizations if self.visualizations else None
         return dict
 
 
