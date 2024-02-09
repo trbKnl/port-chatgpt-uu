@@ -24,23 +24,23 @@ export const TableItems = ({ table, searchedTable, handleUndo, locale }: Props):
   const searchLabel = searched.toLocaleString(locale, { useGrouping: true })
   const deletedLabel = deleted.toLocaleString('en', { useGrouping: true }) + ' ' + text.deleted
 
-  function rowsLabel(): string {
+  function rowsLabel (): string {
     if (n === 0) return text.noData
     if (searched < n) return searchLabel + ' / ' + nLabel + ' ' + text.rows
     return nLabel + ' ' + text.rows
   }
 
   return (
-    <div className="flex  min-w-[200px] gap-1">
-      <div className="flex items-center">{tableIcon}</div>
+    <div className='flex  min-w-[200px] gap-1'>
+      <div className='flex items-center'>{tableIcon}</div>
       <div
         key={`${totalLabel}_${deleted}`}
-        className="flex flex-wrap items-center px-2  gap-x-2 animate-fadeIn text-title7 md:text-title6 font-label"
+        className='flex flex-wrap items-center px-2  gap-x-2 animate-fadeIn text-title7 md:text-title6 font-label'
       >
         <div className={n > 0 ? '' : 'hidden'}>
           {table.head.cells.length} {text.columns},
         </div>
-        <div key={totalLabel} className="animate-fadeIn">
+        <div key={totalLabel} className='animate-fadeIn'>
           {rowsLabel()}
           {deleted > 0 ? ',' : ''}
         </div>
@@ -49,7 +49,7 @@ export const TableItems = ({ table, searchedTable, handleUndo, locale }: Props):
           {deletedLabel}
           <img
             src={UndoSvg}
-            className="w-5 h-5 -translate-y-[2px] md:-translate-y-0 -translate-x-[3px] ml-2"
+            className='w-5 h-5 -translate-y-[2px] md:-translate-y-0 -translate-x-[3px] ml-2'
             onClick={handleUndo}
           />
         </div>
@@ -59,19 +59,19 @@ export const TableItems = ({ table, searchedTable, handleUndo, locale }: Props):
 }
 
 const tableIcon = (
-  <svg className="h-9" viewBox="4 4 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <rect x="9" y="9" width="4" height="2" fill="#4272EF" />
-    <rect x="9" y="13" width="4" height="2" fill="#4272EF" />
-    <rect x="9" y="17" width="4" height="2" fill="#4272EF" />
-    <rect x="15" y="9" width="4" height="2" fill="#4272EF" />
-    <rect x="15" y="13" width="4" height="2" fill="#4272EF" />
-    <rect x="15" y="17" width="4" height="2" fill="#4272EF" />
-    <rect x="4" y="4" width="15" height="3" fill="#4272EF" />
-    <rect x="4" y="9" width="3" height="10" fill="#4272EF" />
+  <svg className='h-9' viewBox='4 4 18 18' fill='none' xmlns='http://www.w3.org/2000/svg'>
+    <rect x='9' y='9' width='4' height='2' fill='#4272EF' />
+    <rect x='9' y='13' width='4' height='2' fill='#4272EF' />
+    <rect x='9' y='17' width='4' height='2' fill='#4272EF' />
+    <rect x='15' y='9' width='4' height='2' fill='#4272EF' />
+    <rect x='15' y='13' width='4' height='2' fill='#4272EF' />
+    <rect x='15' y='17' width='4' height='2' fill='#4272EF' />
+    <rect x='4' y='4' width='15' height='3' fill='#4272EF' />
+    <rect x='4' y='9' width='3' height='10' fill='#4272EF' />
   </svg>
 )
 
-function getTranslations(locale: string): Record<string, string> {
+function getTranslations (locale: string): Record<string, string> {
   const translated: Record<string, string> = {}
   for (const [key, value] of Object.entries(translations)) {
     translated[key] = Translator.translate(value, locale)
