@@ -100,6 +100,7 @@ class PropsUIPromptConsentFormTable:
     id: str
     title: Translatable
     data_frame: pd.DataFrame
+    description: Optional[Translatable] = None
     visualizations: Optional[list] = None
 
     def toDict(self):
@@ -108,8 +109,8 @@ class PropsUIPromptConsentFormTable:
         dict["id"] = self.id
         dict["title"] = self.title.toDict()
         dict["data_frame"] = self.data_frame.to_json()
-        if self.visualizations:
-            dict["visualizations"] = self.visualizations.to_json()
+        dict["description"] = self.description.toDict() if self.description else None
+        dict["visualizations"] = self.visualizations.toDict() if self.visualizations else None
         return dict
 
 

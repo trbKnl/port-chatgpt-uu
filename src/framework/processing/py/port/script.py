@@ -265,26 +265,10 @@ def extract_videos_viewed(data):
     df = df.reindex(columns=["Date", "Timeslot", "Videos"])
 
     visualizations = [
-        props.PropsUIChartVisualization(
-            title=props.Translatable(
-                {
-                    "en": "Average number of videos watched per hour of the day",
-                    "nl": "Gemiddeld aantal videos bekeken per uur van de dag",
-                }
-            ),
-            type="bar",
-            group=props.PropsUIChartGroup(
-                column="Date", label="Hour of the day", dateFormat="hour_cycle"
-            ),
-            values=[
-                props.PropsUIChartValue(
-                    column="Videos",
-                    label="Average nr. of videos",
-                    aggregate="mean",
-                    addZeroes=True,
-                )
-            ],
-        )
+        dict(title = {"en": "Average number of videos watched per hour of the day", "nl": "Gemiddeld aantal videos bekeken per uur van de dag"}, 
+             type="bar", 
+             group = dict(column="Date", label="Hour of the day", dateFormat="hour_cycle"), 
+             values = [dict(column="Videos", label="Average nr. of videos", aggregate="mean", addZeroes=True)])
     ]
 
     return ExtractionResult(
@@ -355,34 +339,11 @@ def extract_comments_and_likes(data):
     df["Comment posts"] = df["Comment posts"].astype(int)
     df["Likes given"] = df["Likes given"].astype(int)
 
-    visualizations = [
-        props.PropsUIChartVisualization(
-            title=props.Translatable(
-                {
-                    "en": "Average number of comments and likes for every hour of the day",
-                    "nl": "Gemiddeld aantal comments en likes per uur van de dag",
-                }
-            ),
-            type="bar",
-            group=props.PropsUIChartGroup(
-                column="Date", label="Hour of the day", dateFormat="hour_cycle"
-            ),
-            values=[
-                props.PropsUIChartValue(
-                    label="Average nr. of comments",
-                    column="Comment posts",
-                    aggregate="mean",
-                    addZeroes=True,
-                ),
-                props.PropsUIChartValue(
-                    label="Average nr. of posts",
-                    column="Likes given",
-                    aggregate="mean",
-                    addZeroes=True,
-                ),
-            ],
-        )
-    ]
+    visualizations = dict(title = {"en": "Average number of comments and likes for every hour of the day", "nl": "Gemiddeld aantal comments en likes per uur van de dag"},
+                          type="bar",
+                          group = dict(column="Date", label="Hour of the day", dateFormat="hour_cycle"),
+                          values = [dict(column="Comment posts", label="Average nr. of comments", aggregate="mean", addZeroes=True),
+                                    dict(column="Likes given", label="Average nr. of posts", aggregate="mean", addZeroes=True)])
 
     return ExtractionResult(
         "tiktok_comments_and_likes",
@@ -410,28 +371,11 @@ def extract_session_info(data):
     df = df.drop("End", axis=1)
     df = df.drop("Duration", axis=1)
 
-    visualizations = [
-        props.PropsUIChartVisualization(
-            title=props.Translatable(
-                {
-                    "en": "Number of minutes spent on TikTok",
-                    "nl": "Aantal minuten besteed aan TikTok",
-                }
-            ),
-            type="line",
-            group=props.PropsUIChartGroup(
-                column="Start", label="Date", dateFormat="auto"
-            ),
-            values=[
-                props.PropsUIChartValue(
-                    label="Nr. of minutes",
-                    column="Duration (in minutes)",
-                    aggregate="sum",
-                    addZeroes=True,
-                )
-            ],
-        )
-    ]
+    visualizations = dict(title = {"en": "Number of minutes spent on TikTok", "nl": "Aantal minuten besteed aan TikTok"},
+                          type="line",
+                          group = dict(column="Start", label="Date", dateFormat="auto"),
+                            values = [dict(column="Duration (in minutes)", label="Nr. of minutes", aggregate="sum", addZeroes=True)])
+
 
     return ExtractionResult(
         "tiktok_session_info",
