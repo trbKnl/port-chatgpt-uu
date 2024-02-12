@@ -265,10 +265,22 @@ def extract_videos_viewed(data):
     df = df.reindex(columns=["Date", "Timeslot", "Videos"])
 
     visualizations = [
-        dict(title = {"en": "Average number of videos watched per hour of the day", "nl": "Gemiddeld aantal videos bekeken per uur van de dag"}, 
-             type="bar", 
-             group = dict(column="Date", label="Hour of the day", dateFormat="hour_cycle"), 
-             values = [dict(column="Videos", label="Average nr. of videos", aggregate="mean", addZeroes=True)])
+        dict(
+            title={
+                "en": "Average number of videos watched per hour of the day",
+                "nl": "Gemiddeld aantal videos bekeken per uur van de dag",
+            },
+            type="bar",
+            group=dict(column="Date", label="Hour of the day", dateFormat="hour_cycle"),
+            values=[
+                dict(
+                    column="Videos",
+                    label="Average nr. of videos",
+                    aggregate="mean",
+                    addZeroes=True,
+                )
+            ],
+        )
     ]
 
     return ExtractionResult(
@@ -340,11 +352,28 @@ def extract_comments_and_likes(data):
     df["Likes given"] = df["Likes given"].astype(int)
 
     visualizations = [
-        dict(title = {"en": "Average number of comments and likes for every hour of the day", "nl": "Gemiddeld aantal comments en likes per uur van de dag"},
-             type="bar",
-             group = dict(column="Date", label="Hour of the day", dateFormat="hour_cycle"),
-             values = [dict(column="Comment posts", label="Average nr. of comments", aggregate="mean", addZeroes=True),
-                       dict(column="Likes given", label="Average nr. of posts", aggregate="mean", addZeroes=True)])
+        dict(
+            title={
+                "en": "Average number of comments and likes for every hour of the day",
+                "nl": "Gemiddeld aantal comments en likes per uur van de dag",
+            },
+            type="bar",
+            group=dict(column="Date", label="Hour of the day", dateFormat="hour_cycle"),
+            values=[
+                dict(
+                    column="Comment posts",
+                    label="Average nr. of comments",
+                    aggregate="mean",
+                    addZeroes=True,
+                ),
+                dict(
+                    column="Likes given",
+                    label="Average nr. of posts",
+                    aggregate="mean",
+                    addZeroes=True,
+                ),
+            ],
+        )
     ]
 
     return ExtractionResult(
@@ -374,10 +403,22 @@ def extract_session_info(data):
     df = df.drop("Duration", axis=1)
 
     visualizations = [
-        dict(title = {"en": "Number of minutes spent on TikTok", "nl": "Aantal minuten besteed aan TikTok"},
-             type="line",
-             group = dict(column="Start", label="Date", dateFormat="auto"),
-             values = [dict(column="Duration (in minutes)", label="Nr. of minutes", aggregate="sum", addZeroes=True)])
+        dict(
+            title={
+                "en": "Number of minutes spent on TikTok",
+                "nl": "Aantal minuten besteed aan TikTok",
+            },
+            type="line",
+            group=dict(column="Start", label="Date", dateFormat="auto"),
+            values=[
+                dict(
+                    column="Duration (in minutes)",
+                    label="Nr. of minutes",
+                    aggregate="sum",
+                    addZeroes=True,
+                )
+            ],
+        )
     ]
 
     return ExtractionResult(
@@ -441,6 +482,8 @@ def extract_videos_liked(data):
         "tiktok_videos_liked",
         props.Translatable({"en": "Videos liked", "nl": "Gelikete videos"}),
         pd.DataFrame(table),
+        None,
+        None,
     )
 
 
@@ -571,7 +614,7 @@ class DataDonationProcessor:
 
         if consent_result.__type__ == "PayloadJSON":
             self.log(f"donate consent data")
-            yield donate(f"{self.sessionId}-{self.platform}", consent_result.value)
+            yield donate(f"{self.session_id}-{self.platform}", consent_result.value)
 
 
 class DataDonation:
