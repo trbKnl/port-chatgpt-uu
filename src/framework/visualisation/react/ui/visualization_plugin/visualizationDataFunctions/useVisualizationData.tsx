@@ -1,18 +1,18 @@
-import { VisualizationType, VisualizationData, Table, zVisualizationData } from '../types'
-import { useEffect, useState } from 'react'
+import { VisualizationType, VisualizationData, Table } from "../types"
+import { useEffect, useState } from "react"
 
-type Status = 'loading' | 'success' | 'error'
+type Status = "loading" | "success" | "error"
 
-export default function useVisualizationData (
+export default function useVisualizationData(
   table: Table,
   visualization: VisualizationType
 ): [VisualizationData | undefined, Status] {
   const [visualizationData, setVisualizationData] = useState<VisualizationData>()
-  const [status, setStatus] = useState<Status>('loading')
+  const [status, setStatus] = useState<Status>("loading")
   const [worker, setWorker] = useState<Worker>()
 
   useEffect(() => {
-    const worker = new Worker(new URL('./visualizationDataWorker.ts', import.meta.url))
+    const worker = new Worker(new URL("./visualizationDataWorker.ts", import.meta.url))
     setWorker(worker)
     return () => {
       worker.terminate()
@@ -21,14 +21,14 @@ export default function useVisualizationData (
 
   useEffect(() => {
     if (worker != null && window.Worker !== undefined) {
-      setStatus('loading')
-      worker.onmessage = (e: MessageEvent<{ status: Status, visualizationData: VisualizationData }>) => {
+      setStatus("loading")
+      worker.onmessage = (e: MessageEvent<{ status: Status; visualizationData: VisualizationData }>) => {
         try {
-          setVisualizationData(zVisualizationData.parse(e.data.visualizationData))
+          setVisualizationData(e.data.visualizationData)
           setStatus(e.data.status)
         } catch (e) {
           setVisualizationData(undefined)
-          setStatus('error')
+          setStatus("error")
         }
       }
       worker.postMessage({ table, visualization })

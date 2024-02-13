@@ -252,17 +252,21 @@ def extract_summary_data(data):
 
 
 def extract_videos_viewed(data):
-    videos = get_all_first(
-        get_date_filtered_items(get_activity_video_browsing_list_data(data))
-    )
-    video_counts = get_count_by_date_key(videos, hourly_key)
-    if not video_counts:
-        return
+    # Based on comment Sebastian: do get all links for viewed videos
+    # videos = get_all_first(
+    #     get_date_filtered_items(get_activity_video_browsing_list_data(data))
+    # )
 
-    df = pd.DataFrame(video_counts, columns=["Date", "Videos"])
-    df["Timeslot"] = map_to_timeslot(df["Date"].dt.hour)
-    df["Date"] = df["Date"].dt.strftime("%Y-%m-%d %H:00:00")
-    df = df.reindex(columns=["Date", "Timeslot", "Videos"])
+    # video_counts = get_count_by_date_key(videos, hourly_key)
+    # if not video_counts:
+    #     return
+
+    videos = get_activity_video_browsing_list_data(data)
+
+    df = pd.DataFrame(videos, columns=["Date", "Link"])
+    date = df["Date"].map(parse_datetime)
+    df["Timeslot"] = map_to_timeslot(date.dt.hour)
+    df = df.reindex(columns=["Date", "Timeslot", "Link"])
 
     visualizations = [
         dict(
@@ -274,9 +278,9 @@ def extract_videos_viewed(data):
             group=dict(column="Date", label="Hour of the day", dateFormat="hour_cycle"),
             values=[
                 dict(
-                    column="Videos",
-                    label="Average nr. of videos",
-                    aggregate="mean",
+                    column="Link",
+                    label="Percentage of videos watched",
+                    aggregate="count_pct",
                     addZeroes=True,
                 )
             ],
