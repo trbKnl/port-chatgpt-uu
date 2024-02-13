@@ -161,7 +161,7 @@ export const Table = ({
     >
       <div ref={innerRef} className={`h-min ${unfilteredRows === 0 ? 'invisible' : ''}`}>
         <div className='my-2 bg-grey6 rounded-md border-grey4 border-[0.2rem]'>
-          <div className='p-3 pt-1 pb-2 max-w-full overflow-x-scroll'>
+          <div className='p-3 pt-1 pb-2 max-w-full overflow-x-auto'>
             <table className='table-fixed min-w-full '>
               <thead className=''>
                 <tr className='border-b-2 border-grey4 border-solid'>

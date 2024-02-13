@@ -1,17 +1,17 @@
-import { formatDate, getTableColumn } from "./util"
-import { Table, TickerFormat, ChartVisualizationData, ChartVisualization, AxisSettings } from "../types"
+import { formatDate, getTableColumn } from './util'
+import { Table, TickerFormat, ChartVisualizationData, ChartVisualization, AxisSettings } from '../types'
 
-export async function prepareChartData(
+export async function prepareChartData (
   table: Table,
   visualization: ChartVisualization
 ): Promise<ChartVisualizationData> {
-  if (table.body.rows.length === 0) return { type: visualization.type, xKey: "", xLabel: "", yKeys: {}, data: [] }
+  if (table.body.rows.length === 0) return { type: visualization.type, xKey: '', xLabel: '', yKeys: {}, data: [] }
 
   const aggregate = aggregateData(table, visualization)
   return createVisualizationData(table, visualization, aggregate)
 }
 
-function createVisualizationData(
+function createVisualizationData (
   table: Table,
   visualization: ChartVisualization,
   aggregate: Record<string, PrepareAggregatedData>
@@ -27,18 +27,18 @@ function createVisualizationData(
         ...d.values,
         [d.xKey]: d.xValue,
         __rowIds: d.rowIds,
-        __sortBy: d.sortBy,
+        __sortBy: d.sortBy
       }
     })
 
   return visualizationData
 }
 
-function initializeVisualizationData(table: Table, visualization: ChartVisualization): ChartVisualizationData {
+function initializeVisualizationData (table: Table, visualization: ChartVisualization): ChartVisualizationData {
   const yKeys: Record<string, AxisSettings> = {}
   for (const value of visualization.values) {
-    let tickerFormat: TickerFormat = "default"
-    if (value.aggregate === "pct" || value.aggregate === "count_pct") tickerFormat = "percent"
+    let tickerFormat: TickerFormat = 'default'
+    if (value.aggregate === 'pct' || value.aggregate === 'count_pct') tickerFormat = 'percent'
 
     if (value.group_by === undefined) {
       const label = value.label !== undefined ? value.label : value.column
@@ -57,11 +57,11 @@ function initializeVisualizationData(table: Table, visualization: ChartVisualiza
     xKey: visualization.group.column,
     xLabel: visualization.group.label,
     yKeys,
-    data: [],
+    data: []
   }
 }
 
-function aggregateData(table: Table, visualization: ChartVisualization): Record<string, PrepareAggregatedData> {
+function aggregateData (table: Table, visualization: ChartVisualization): Record<string, PrepareAggregatedData> {
   const aggregate: Record<string, PrepareAggregatedData> = {}
 
   const { groupBy, xSortable } = prepareX(table, visualization)
@@ -76,7 +76,7 @@ function aggregateData(table: Table, visualization: ChartVisualization): Record<
         rowIds: {},
         xKey,
         xValue: uniqueValue,
-        values: {},
+        values: {}
       }
     }
   }
@@ -84,7 +84,7 @@ function aggregateData(table: Table, visualization: ChartVisualization): Record<
   for (const value of visualization.values) {
     // loop over all y values
 
-    const aggFun = value.aggregate !== undefined ? value.aggregate : "count"
+    const aggFun = value.aggregate !== undefined ? value.aggregate : 'count'
 
     const yValues = getTableColumn(table, value.column)
     if (yValues.length === 0) throw new Error(`Y column ${table.id}.${value.column} not found`)
@@ -93,12 +93,11 @@ function aggregateData(table: Table, visualization: ChartVisualization): Record<
     // column values. As suffix we use the value column, separated with .GROUP_BY.. This is used
     // so that we can relate the aggregated data back to the value specification
     let yGroup: null | string[] = null
-    if (value.group_by !== undefined)
-      yGroup = getTableColumn(table, value.group_by).map((v) => `${value.column}.GROUP_BY.${v}`)
+    if (value.group_by !== undefined) { yGroup = getTableColumn(table, value.group_by).map((v) => `${value.column}.GROUP_BY.${v}`) }
 
     // if missing values should be treated as zero, we need to add the missing values after knowing all groups
     const addZeroes = value.addZeroes ?? false
-    const groupSummary: Record<string, { n: number; sum: number }> = {}
+    const groupSummary: Record<string, { n: number, sum: number }> = {}
 
     for (let i = 0; i < rowIds.length; i++) {
       // loop over rows of table
@@ -117,8 +116,8 @@ function aggregateData(table: Table, visualization: ChartVisualization): Record<
 
       // calculate group summary statistics. This is used for the mean, pct and count_pct aggregations
       if (groupSummary[group] === undefined) groupSummary[group] = { n: 0, sum: 0 }
-      if (aggFun === "count_pct" || aggFun === "mean") groupSummary[group].n += 1
-      if (aggFun === "pct") groupSummary[group].sum += Number(yValue) ?? 0
+      if (aggFun === 'count_pct' || aggFun === 'mean') groupSummary[group].n += 1
+      if (aggFun === 'pct') groupSummary[group].sum += Number(yValue) ?? 0
 
       if (aggregate[xValue] === undefined) {
         aggregate[xValue] = {
@@ -126,7 +125,7 @@ function aggregateData(table: Table, visualization: ChartVisualization): Record<
           rowIds: {},
           xKey,
           xValue: String(xValue),
-          values: {},
+          values: {}
         }
       }
 
@@ -134,8 +133,8 @@ function aggregateData(table: Table, visualization: ChartVisualization): Record<
       aggregate[xValue].rowIds[group].push(rowIds[i])
 
       if (aggregate[xValue].values[group] === undefined) aggregate[xValue].values[group] = 0
-      if (aggFun === "count" || aggFun === "count_pct") aggregate[xValue].values[group] += 1
-      if (aggFun === "sum" || aggFun === "mean" || aggFun === "pct") {
+      if (aggFun === 'count' || aggFun === 'count_pct') aggregate[xValue].values[group] += 1
+      if (aggFun === 'sum' || aggFun === 'mean' || aggFun === 'pct') {
         aggregate[xValue].values[group] += Number(yValue) ?? 0
       }
     }
@@ -147,13 +146,13 @@ function aggregateData(table: Table, visualization: ChartVisualization): Record<
           if (addZeroes) aggregate[xValue].values[group] = 0
           else continue
         }
-        if (aggFun === "mean") {
+        if (aggFun === 'mean') {
           aggregate[xValue].values[group] = Number(aggregate[xValue].values[group]) / groupSummary[group].n
         }
-        if (aggFun === "count_pct") {
+        if (aggFun === 'count_pct') {
           aggregate[xValue].values[group] = (100 * Number(aggregate[xValue].values[group])) / groupSummary[group].n
         }
-        if (aggFun === "pct") {
+        if (aggFun === 'pct') {
           aggregate[xValue].values[group] = (100 * Number(aggregate[xValue].values[group])) / groupSummary[group].sum
         }
       }
@@ -163,10 +162,10 @@ function aggregateData(table: Table, visualization: ChartVisualization): Record<
   return aggregate
 }
 
-function prepareX(
+function prepareX (
   table: Table,
   visualization: ChartVisualization
-): { groupBy: string[]; xSortable: Record<string, string | number> | null } {
+): { groupBy: string[], xSortable: Record<string, string | number> | null } {
   let groupBy = getTableColumn(table, visualization.group.column)
   if (groupBy.length === 0) {
     throw new Error(`X column ${table.id}.${visualization.group.column} not found`)
