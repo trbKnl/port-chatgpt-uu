@@ -6,21 +6,25 @@ import pandas as pd
 import zipfile
 import json
 import datetime
+import pytz
+import fnmatch
 from collections import defaultdict, namedtuple
 from contextlib import suppress
 
 ##########################
-# TikTok file processing #
+# Instagram file processing #
 ##########################
 
-filter_start = datetime.datetime(2021, 1, 1)
+filter_start = datetime.datetime(1990, 1, 1)
 filter_end = datetime.datetime(2025, 1, 1)
 
 datetime_format = "%Y-%m-%d %H:%M:%S"
 
 
 def parse_datetime(value):
-    return datetime.datetime.strptime(value, datetime_format)
+    utc_datetime = datetime.datetime.fromtimestamp(value, tz=datetime.timezone.utc)
+    uk_timezone = pytz.timezone("Europe/London")
+    return uk_timezone.normalize(utc_datetime.astimezone(uk_timezone))
 
 
 def get_in(data_dict, *key_path):
@@ -67,12 +71,11 @@ def get_comment_list_data(data):
     return get_in(data, "Comment", "Comments", "CommentsList")
 
 
-def get_date_filtered_items(items):
-    for item in items:
-        timestamp = parse_datetime(item["Date"])
+def filter_timestamps(timestamps):
+    for timestamp in timestamps:
         if timestamp < filter_start or timestamp > filter_end:
             continue
-        yield (timestamp, item)
+        yield timestamp
 
 
 def get_count_by_date_key(timestamps, key_func):
@@ -101,6 +104,20 @@ def daily_key(date):
     return date.date()
 
 
+# =====================
+def glob(zipfile, pattern):
+    return fnmatch.filter(zipfile.namelist(), pattern)
+
+
+def glob_json(zipfile, pattern):
+    for name in glob(zipfile, pattern):
+        with zipfile.open(name) as f:
+            yield json.load(f)
+
+
+# =====================
+
+
 def get_sessions(timestamps):
     """Returns a list of tuples of the form (start, end, duration)
 
@@ -125,41 +142,10 @@ def get_sessions(timestamps):
     return sessions
 
 
-def load_tiktok_data(json_file):
-    data = json.load(json_file)
-    if not get_user_name(data):
-        raise IOError("Unsupported file type")
-    return data
-
-
-def get_json_data_from_zip(zip_file):
-    with zipfile.ZipFile(zip_file, "r") as zip:
-        for name in zip.namelist():
-            if not name.endswith(".json"):
-                continue
-            with zip.open(name) as json_file:
-                with suppress(IOError, json.JSONDecodeError):
-                    return [load_tiktok_data(json_file)]
-    return []
-
-
-def get_json_data_from_file(file_):
-    # TikTok exports can be a single JSON file or a zipped JSON file
-    try:
-        with open(file_) as f:
-            return [load_tiktok_data(f)]
-    except (json.decoder.JSONDecodeError, UnicodeDecodeError):
-        return get_json_data_from_zip(file_)
-
-
 def filtered_count(data, *key_path):
     items = get_list(data, *key_path)
     filtered_items = get_date_filtered_items(items)
     return len(list(filtered_items))
-
-
-def get_user_name(data):
-    return get_in(data, "Profile", "Profile Information", "ProfileMap", "userName")
 
 
 def get_chat_history(data):
@@ -185,102 +171,124 @@ def map_to_timeslot(series):
     return series.map(lambda hour: f"{hour}-{hour+1}")
 
 
-def extract_summary_data(data):
-    user_name = get_user_name(data)
-    chat_history = get_chat_history(data)
-    flattened = flatten_chat_history(chat_history)
-    direct_messages_in_period = list(get_date_filtered_items(flattened))
-    sent_count = len(
-        list(
-            filter(lambda item: item[1]["From"] == user_name, direct_messages_in_period)
-        )
-    )
-    received_count = len(
-        list(
-            filter(
-                lambda item: item[1]["From"] != user_name,
-                direct_messages_in_period,
-            )
-        )
-    )
+def count_items(zipfile, pattern, key):
+    count = 0
+    for data in glob_json(zipfile, pattern):
+        # Some files have dictionary, others a list of dictionaries. Normalize
+        # this to always a list so the rest of the code works regardless.
+        if isinstance(data, dict):
+            data = [data]
+        for item in data:
+            count += len(item[key])
+    return count
 
+
+def count_posts(zipfile):
+    return sum(len(data) for data in glob_json(zipfile, "content/posts_*.json"))
+
+
+def count_messages(zipfile):
+    counts = {"sent": 0, "received": 0}
+    for data in glob_json(zipfile, "messages/inbox/**/message_*.json"):
+        donating_user = get_donating_user(data)
+        for message in data["messages"]:
+            key = "sent" if message["sender_name"] == donating_user else "received"
+            counts[key] += 1
+    return counts
+
+
+def get_donating_user(data):
+    participants = data["participants"]
+    return participants[len(participants) - 1]["name"]
+
+
+def extract_summary_data(zipfile):
+    message_counts = count_messages(zipfile)
     summary_data = {
         "Description": [
             "Followers",
             "Following",
-            "Likes received",
-            "Videos posted",
-            "Likes given",
+            "Posts",
             "Comments posted",
+            "Videos watched",
+            "Posts viewed",
             "Messages sent",
             "Messages received",
-            "Videos watched",
+            "Ads viewed",
         ],
         "Number": [
-            filtered_count(data, "Activity", "Follower List", "FansList"),
-            filtered_count(data, "Activity", "Following List", "Following"),
-            cast_number(
-                data,
-                "Profile",
-                "Profile Information",
-                "ProfileMap",
-                "likesReceived",
+            count_items(
+                zipfile, "followers_and_following/followers_*.json", "string_list_data"
             ),
-            filtered_count(data, "Video", "Videos", "VideoList"),
-            filtered_count(data, "Activity", "Like List", "ItemFavoriteList"),
-            filtered_count(data, "Comment", "Comments", "CommentsList"),
-            sent_count,
-            received_count,
-            filtered_count(data, "Activity", "Video Browsing History", "VideoList"),
+            count_items(
+                zipfile,
+                "followers_and_following/following.json",
+                "relationships_following",
+            ),
+            count_posts(zipfile),
+            count_items(
+                zipfile, "comments/post_comments.json", "comments_media_comments"
+            ),
+            count_items(
+                zipfile,
+                "ads_and_topics/videos_watched.json",
+                "impressions_history_videos_watched",
+            ),
+            count_items(
+                zipfile,
+                "ads_and_topics/posts_viewed.json",
+                "impressions_history_posts_seen",
+            ),
+            message_counts["sent"],
+            message_counts["received"],
+            count_items(
+                zipfile,
+                "ads_and_topics/ads_viewed.json",
+                "impressions_history_ads_seen",
+            ),
         ],
     }
 
+    visualizations = []
+
     return ExtractionResult(
-        "tiktok_summary",
+        "instagram_summary",
         props.Translatable(
             {"en": "Summary information", "nl": "Samenvatting gegevens"}
         ),
         pd.DataFrame(summary_data),
-        props.Translatable(
-            {
-                "en": "Here we can now add a description per table to better help the user understand what the data is about. The description should be short. Say about one to three sentences",
-                "nl": "Hier kunnen we nu een beschrijving per tabel toevoegen om de gebruiker beter te helpen begrijpen waar de gegevens over gaan. De beschrijving moet kort zijn. Zeg ongeveer één tot drie zinnen",
-            }
-        ),
-        None,
+        visualizations,
     )
 
 
-def extract_videos_viewed(data):
-    # Based on comment Sebastian: do get all links for viewed videos
-    # videos = get_all_first(
-    #     get_date_filtered_items(get_activity_video_browsing_list_data(data))
-    # )
-
-    # video_counts = get_count_by_date_key(videos, hourly_key)
-    # if not video_counts:
-    #     return
-
-    videos = get_activity_video_browsing_list_data(data)
-
-    df = pd.DataFrame(videos, columns=["Date", "Link"])
-    date = df["Date"].map(parse_datetime)
-    df["Timeslot"] = map_to_timeslot(date.dt.hour)
-    df = df.reindex(columns=["Date", "Timeslot", "Link"])
+def extract_direct_message_activity(zipfile):
+    counter = itertools.count()
+    person_ids = defaultdict(lambda: next(counter))
+    sender_ids = []
+    timestamps = []
+    for data in glob_json(zipfile, "messages/inbox/**/message_*.json"):
+        # Ensure the donating user is the first to get an ID
+        donating_user = get_donating_user(data)
+        person_ids[donating_user]
+        for message in data["messages"]:
+            sender_ids.append(person_ids[message["sender_name"]])
+            timestamps.append(parse_datetime(message["timestamp_ms"] / 1000))
+    df = pd.DataFrame({"Anonymous ID": sender_ids, "Sent": timestamps})
+    df["Sent"] = pd.to_datetime(df["Sent"]).dt.strftime("%Y-%m-%d %H:%M")
 
     visualizations = [
         dict(
             title={
-                "en": "Average number of videos watched per hour of the day",
-                "nl": "Gemiddeld aantal videos bekeken per uur van de dag",
+                "en": "Direct message activity over time",
+                "nl": "Direct message activiteit in de loop van de tijd",
             },
-            type="bar",
-            group=dict(column="Date", label="Hour of the day", dateFormat="hour_cycle"),
+            type="area",
+            group=dict(column="Sent", dateFormat="auto"),
             values=[
                 dict(
-                    column="Link",
-                    label="Percentage of videos watched",
-                    aggregate="count_pct",
+                    label="Messages",
+                    column="Anonymous ID",
+                    aggregate="count",
                     addZeroes=True,
                 )
             ],
@@ -288,92 +296,256 @@ def extract_videos_viewed(data):
     ]
 
     return ExtractionResult(
-        "tiktok_videos_viewed",
-        props.Translatable({"en": "Video views", "nl": "Videos gezien"}),
+        "instagram_direct_message_activity",
+        props.Translatable(
+            {"en": "Direct message activity", "nl": "Bericht activiteit"}
+        ),
         df,
-        None,
         visualizations,
     )
 
 
-def extract_video_posts(data):
-    video_list = get_in(data, "Video", "Videos", "VideoList")
-    if video_list is None:
-        return
-    videos = get_date_filtered_items(video_list)
-    post_stats = defaultdict(lambda: defaultdict(int))
-    for date, video in videos:
-        hourly_stats = post_stats[hourly_key(date)]
-        hourly_stats["Videos"] += 1
-        hourly_stats["Likes received"] += int(video["Likes"])
-
-    df = pd.DataFrame(post_stats).transpose()
-    df["Date"] = df.index.strftime("%Y-%m-%d")
-    df["Timeslot"] = map_to_timeslot(df.index.hour)
-    df = df.reset_index(drop=True)
-    df = df.reindex(columns=["Date", "Timeslot", "Videos", "Likes received"])
-
-    return ExtractionResult(
-        "tiktok_posts",
-        props.Translatable({"en": "Video posts", "nl": "Video posts"}),
-        df,
-        None,
-        None,
-    )
-
-
-def extract_comments_and_likes(data):
-    comments = get_all_first(
-        get_date_filtered_items(get_list(data, "Comment", "Comments", "CommentsList"))
-    )
-    comment_counts = get_count_by_date_key(comments, hourly_key)
-
-    likes_given = get_all_first(
-        get_date_filtered_items(
-            get_list(data, "Activity", "Like List", "ItemFavoriteList")
-        )
-    )
-    likes_given_counts = get_count_by_date_key(likes_given, hourly_key)
-    if not likes_given_counts:
-        return
-
-    df1 = pd.DataFrame(comment_counts, columns=["Date", "Comment posts"]).set_index(
-        "Date"
-    )
-    df2 = pd.DataFrame(likes_given_counts, columns=["Date", "Likes given"]).set_index(
-        "Date"
-    )
-
-    df = pd.merge(df1, df2, left_on="Date", right_on="Date", how="outer").sort_index()
-    df["Timeslot"] = map_to_timeslot(df.index.hour)
-    df["Date"] = df.index.strftime("%Y-%m-%d %H:00:00")
-    df = (
-        df.reindex(columns=["Date", "Timeslot", "Comment posts", "Likes given"])
-        .reset_index(drop=True)
-        .fillna(0)
-    )
-    df["Comment posts"] = df["Comment posts"].astype(int)
-    df["Likes given"] = df["Likes given"].astype(int)
+def extract_comment_activity(zipfile):
+    timestamps = []
+    for data in glob_json(zipfile, "comments/post_comments.json"):
+        for item in data["comments_media_comments"]:
+            timestamps.append(
+                parse_datetime(item["string_map_data"]["Time"]["timestamp"])
+            )
+    df = pd.DataFrame({"Posted": timestamps})
+    df = df.sort_values("Posted")
+    df["Posted"] = pd.to_datetime(df["Posted"]).dt.strftime("%Y-%m-%d %H:%M")
 
     visualizations = [
         dict(
             title={
-                "en": "Average number of comments and likes for every hour of the day",
-                "nl": "Gemiddeld aantal comments en likes per uur van de dag",
+                "en": "Comment activity over time",
+                "nl": "Comment activiteit in de loop van de tijd",
             },
-            type="bar",
-            group=dict(column="Date", label="Hour of the day", dateFormat="hour_cycle"),
+            type="area",
+            group=dict(column="Posted", dateFormat="auto"),
             values=[
                 dict(
-                    column="Comment posts",
-                    label="Average nr. of comments",
-                    aggregate="mean",
+                    label="Comment activity",
+                    aggregate="count",
+                    addZeroes=True,
+                )
+            ],
+        )
+    ]
+
+    return ExtractionResult(
+        "instagram_comment_activity",
+        props.Translatable({"en": "Comment activity", "nl": "Commentaar activiteit"}),
+        df,
+        visualizations,
+    )
+
+
+def extract_posts_liked(zipfile):
+    urls = []
+    timestamps = []
+    for data in glob_json(zipfile, "likes/liked_posts.json"):
+        for item in data["likes_media_likes"]:
+            info = item["string_list_data"][0]
+            timestamps.append(parse_datetime(info["timestamp"]))
+            urls.append(info["href"])
+    df = pd.DataFrame({"Liked": timestamps, "Link": urls})
+    df["Liked"] = pd.to_datetime(df["Liked"]).dt.strftime("%Y-%m-%d %H:%M")
+    df = df.sort_values("Liked")
+
+    visualizations = [
+        dict(
+            title={
+                "en": "Posts like per hour of the day",
+                "nl": "Posts geliked per uur van de dag",
+            },
+            type="bar",
+            group=dict(column="Liked", dateFormat="hour_cycle"),
+            values=[
+                dict(
+                    label="likes",
+                    column="Link",
+                    aggregate="count",
+                    addZeroes=True,
+                )
+            ],
+        )
+    ]
+
+    return ExtractionResult(
+        "instagram_posts_liked",
+        props.Translatable({"en": "Posts Liked", "nl": "Geliked"}),
+        df,
+        visualizations,
+    )
+
+
+def flatten_media(items):
+    for item in items:
+        yield from item["media"]
+
+
+def get_creation_timestamps(items):
+    for item in items:
+        yield parse_datetime(item["creation_timestamp"])
+
+
+def get_media_creation_timestamps(items):
+    return get_creation_timestamps(flatten_media(items))
+
+
+def get_content_posts_timestamps(zipfile):
+    for data in glob_json(zipfile, "content/posts_*.json"):
+        yield from get_media_creation_timestamps(data)
+
+
+def get_media_timestamps(zipfile, pattern, key):
+    for data in glob_json(zipfile, pattern):
+        yield from get_media_creation_timestamps(data[key])
+
+
+def df_from_timestamps(timestamps, column):
+    df = pd.DataFrame({"timestamps": timestamps})
+    counts = df.groupby(lambda x: hourly_key(df["timestamps"][x])).size()
+
+    df = counts.reset_index()
+    df.columns = ["timestamp", column]
+    return df
+
+
+def stories_timestamps(zipfile):
+    for data in glob_json(zipfile, "content/stories.json"):
+        for item in data["ig_stories"]:
+            yield parse_datetime(item["creation_timestamp"])
+
+
+def df_from_timestamp_columns(a, b):
+    data_frames = [
+        df_from_timestamps(timestamps, column) for timestamps, column in [a, b]
+    ]
+
+    df = pd.merge(
+        data_frames[0],
+        data_frames[1],
+        left_on="timestamp",
+        right_on="timestamp",
+        how="outer",
+    ).sort_index()
+    df["Date"] = pd.to_datetime(df["timestamp"]).dt.strftime("%Y-%m-%d %H:00:00")
+    df["Timeslot"] = map_to_timeslot(pd.to_datetime(df["timestamp"]).dt.hour)
+    df = df.reset_index(drop=True)
+    df = (
+        df.reindex(columns=["Date", "Timeslot", a[1], b[1]])
+        .reset_index(drop=True)
+        .fillna(0)
+    )
+    df[a[1]] = df[a[1]].astype(int)
+    df[b[1]] = df[b[1]].astype(int)
+    return df
+
+
+def get_video_posts_timestamps(zipfile):
+    return itertools.chain(
+        get_content_posts_timestamps(zipfile),
+        get_media_timestamps(zipfile, "content/igtv_videos.json", "ig_igtv_media"),
+        get_media_timestamps(zipfile, "content/reels.json", "ig_reels_media"),
+    )
+
+
+def extract_video_posts(zipfile):
+    video_timestamps = get_video_posts_timestamps(zipfile)
+    df = df_from_timestamp_columns(
+        (video_timestamps, "Videos"), (stories_timestamps(zipfile), "Stories")
+    )
+
+    visualizations = [
+        dict(
+            title={
+                "en": "Videos and stories over time",
+                "nl": "Video's en stories in de loop van de tijd",
+            },
+            type="line",
+            group=dict(column="Date", dateFormat="auto"),
+            values=[
+                dict(
+                    label="Videos",
+                    column="Videos",
+                    aggregate="sum",
                     addZeroes=True,
                 ),
                 dict(
-                    column="Likes given",
-                    label="Average nr. of posts",
-                    aggregate="mean",
+                    label="Stories",
+                    column="Stories",
+                    aggregate="sum",
+                    addZeroes=True,
+                ),
+            ],
+        )
+    ]
+    return ExtractionResult(
+        "instagram_video_posts",
+        props.Translatable({"en": "Posts", "nl": "Posts"}),
+        df,
+        visualizations,
+    )
+
+
+def get_post_comments_timestamps(zipfile):
+    return get_string_map_timestamps(
+        zipfile, "comments/post_comments.json", "comments_media_comments"
+    )
+
+
+def get_string_list_timestamps(zipfile, pattern, key):
+    for data in glob_json(zipfile, pattern):
+        for item in data[key]:
+            yield parse_datetime(item["string_list_data"][0]["timestamp"])
+
+
+def get_string_map_timestamps(zipfile, pattern, key):
+    for data in glob_json(zipfile, pattern):
+        for item in data[key]:
+            yield parse_datetime(item["string_map_data"]["Time"]["timestamp"])
+
+
+def get_likes_timestamps(zipfile):
+    return itertools.chain(
+        get_string_list_timestamps(
+            zipfile, "likes/liked_comments.json", "likes_comment_likes"
+        ),
+        get_string_list_timestamps(
+            zipfile, "likes/liked_posts.json", "likes_media_likes"
+        ),
+    )
+
+
+def extract_comments_and_likes(zipfile):
+    comment_timestamps = get_post_comments_timestamps(zipfile)
+    likes_timestamps = get_likes_timestamps(zipfile)
+    df = df_from_timestamp_columns(
+        (comment_timestamps, "Comments"), (likes_timestamps, "Likes")
+    )
+
+    visualizations = [
+        dict(
+            title={
+                "en": "Comments and likes over time",
+                "nl": "Comments en likes in de loop van de tijd",
+            },
+            type="line",
+            group=dict(column="Date", dateFormat="auto"),
+            values=[
+                dict(
+                    label="Comments",
+                    column="Comments",
+                    aggregate="sum",
+                    addZeroes=True,
+                ),
+                dict(
+                    label="Likes",
+                    column="Likes",
+                    aggregate="sum",
                     addZeroes=True,
                 ),
             ],
@@ -381,43 +553,96 @@ def extract_comments_and_likes(data):
     ]
 
     return ExtractionResult(
-        "tiktok_comments_and_likes",
+        "instagram_comments_and_likes",
         props.Translatable({"en": "Comments and likes", "nl": "Comments en likes"}),
         df,
-        None,
         visualizations,
     )
 
 
-def extract_session_info(data):
-    session_paths = [
-        ("Video", "Videos", "VideoList"),
-        ("Activity", "Video Browsing History", "VideoList"),
-        ("Comment", "Comments", "CommentsList"),
+def extract_viewed(zipfile):
+    df = df_from_timestamp_columns(
+        (
+            get_string_map_timestamps(
+                zipfile,
+                "ads_and_topics/videos_watched.json",
+                "impressions_history_videos_watched",
+            ),
+            "Videos",
+        ),
+        (
+            get_string_map_timestamps(
+                zipfile,
+                "ads_and_topics/posts_viewed.json",
+                "impressions_history_posts_seen",
+            ),
+            "Posts",
+        ),
+    )
+
+    visualizations = [
+        dict(
+            title={
+                "en": "The number of videos and posts you viewed over time",
+                "nl": "Het aantal video's en berichten dat u in de loop van de tijd heeft bekeken",
+            },
+            type="line",
+            group=dict(column="Date", dateFormat="auto"),
+            values=[
+                dict(
+                    label="Videos",
+                    column="Videos",
+                    aggregate="sum",
+                    addZeroes=True,
+                ),
+                dict(
+                    label="Posts",
+                    column="Posts",
+                    aggregate="sum",
+                    addZeroes=True,
+                ),
+            ],
+        )
     ]
 
-    item_lists = [get_list(data, *path) for path in session_paths]
-    dates = get_all_first(get_date_filtered_items(itertools.chain(*item_lists)))
+    return ExtractionResult(
+        "instagram_viewed",
+        props.Translatable({"en": "Viewed", "nl": "Viewed"}),
+        df,
+        visualizations,
+    )
 
-    sessions = get_sessions(dates)
+
+def extract_session_info(zipfile):
+    timestamps = list(
+        itertools.chain(
+            list(get_video_posts_timestamps(zipfile)),
+            list(stories_timestamps(zipfile)),
+            list(get_post_comments_timestamps(zipfile)),
+            list(get_likes_timestamps(zipfile)),
+        )
+    )
+    sessions = get_sessions(timestamps)
     df = pd.DataFrame(sessions, columns=["Start", "End", "Duration"])
-    df["Start"] = df["Start"].dt.strftime("%Y-%m-%d %H:%M")
-    df["Duration (in minutes)"] = (df["Duration"].dt.total_seconds() / 60).round(2)
+    df["Start"] = pd.to_datetime(df["Start"]).dt.strftime("%Y-%m-%d %H:%M")
+    df["Duration (in minutes)"] = (
+        pd.to_timedelta(df["Duration"]).dt.total_seconds() / 60
+    ).round(2)
     df = df.drop("End", axis=1)
     df = df.drop("Duration", axis=1)
 
     visualizations = [
         dict(
             title={
-                "en": "Number of minutes spent on TikTok",
-                "nl": "Aantal minuten besteed aan TikTok",
+                "en": "Number of minutes spent on Instagram over time",
+                "nl": "Aantal minuten besteed aan Instagram in de loop van de tijd",
             },
             type="line",
-            group=dict(column="Start", label="Date", dateFormat="auto"),
+            group=dict(column="Start", dateFormat="auto"),
             values=[
                 dict(
+                    label="Minutes",
                     column="Duration (in minutes)",
-                    label="Nr. of minutes",
                     aggregate="sum",
                     addZeroes=True,
                 )
@@ -426,101 +651,38 @@ def extract_session_info(data):
     ]
 
     return ExtractionResult(
-        "tiktok_session_info",
+        "instagram_session_info",
         props.Translatable({"en": "Session information", "nl": "Sessie informatie"}),
         df,
-        None,
         visualizations,
     )
 
 
-def extract_direct_messages(data):
-    history = get_in(data, "Direct Messages", "Chat History", "ChatHistory")
-    counter = itertools.count(start=1)
-    anon_ids = defaultdict(lambda: next(counter))
-    # Ensure 1 is the ID of the donating user
-    anon_ids[get_user_name(data)]
-    table = {"Anonymous ID": [], "Sent": []}
-    for item in flatten_chat_history(history):
-        table["Anonymous ID"].append(anon_ids[item["From"]])
-        table["Sent"].append(parse_datetime(item["Date"]).strftime("%Y-%m-%d %H:%M"))
-
-    return ExtractionResult(
-        "tiktok_direct_messages",
-        props.Translatable(
-            {"en": "Direct Message Activity", "nl": "Berichten activiteit"}
-        ),
-        pd.DataFrame(table),
-        None,
-        None,
-    )
-
-
-def extract_comment_activity(data):
-    comments = get_in(data, "Comment", "Comments", "CommentsList")
-    if comments is None:
-        return
-    timestamps = [
-        parse_datetime(item["Date"]).strftime("%Y-%m-%d %H:%M") for item in comments
-    ]
-
-    return ExtractionResult(
-        "tiktok_comment_activity",
-        props.Translatable({"en": "Comment Activity", "nl": "Commentaar activiteit"}),
-        pd.DataFrame({"Posted on": timestamps}),
-        None,
-        None,
-    )
-
-
-def extract_videos_liked(data):
-    favorite_videos = get_in(data, "Activity", "Favorite Videos", "FavoriteVideoList")
-    if favorite_videos is None:
-        return
-    table = {"Liked": [], "Link": []}
-    for item in favorite_videos:
-        table["Liked"].append(parse_datetime(item["Date"]).strftime("%Y-%m-%d %H:%M"))
-        table["Link"].append(item["Link"])
-
-    return ExtractionResult(
-        "tiktok_videos_liked",
-        props.Translatable({"en": "Videos liked", "nl": "Gelikete videos"}),
-        pd.DataFrame(table),
-        None,
-        None,
-    )
-
-
-def extract_tiktok_data(zip_file):
+def extract_data(path):
     extractors = [
         extract_summary_data,
         extract_video_posts,
         extract_comments_and_likes,
-        extract_videos_viewed,
+        extract_viewed,
         extract_session_info,
-        extract_direct_messages,
+        extract_direct_message_activity,
         extract_comment_activity,
-        extract_videos_liked,
+        extract_posts_liked,
     ]
-    for data in get_json_data_from_file(zip_file):
-        return [
-            table
-            for table in (extractor(data) for extractor in extractors)
-            if table is not None
-        ]
+
+    zfile = zipfile.ZipFile(path)
+
+    return [extractor(zfile) for extractor in extractors]
 
 
 ######################
 # Data donation flow #
 ######################
 
+
 ExtractionResult = namedtuple(
-    "ExtractionResult", ["id", "title", "data_frame", "description", "visualizations"]
+    "ExtractionResult", ["id", "title", "data_frame", "visualizations"]
 )
-
-
-class InvalidFileError(Exception):
-    """Indicates that the file does not match expectations."""
 
 
 class SkipToNextStep(Exception):
@@ -544,16 +706,12 @@ class DataDonationProcessor:
                 self.log(f"extracting file")
                 try:
                     extraction_result = self.extract_data(file_result.value)
-                except IOError as e:
+                except (IOError, zipfile.BadZipFile):
                     self.log(f"prompt confirmation to retry file selection")
-                    yield from self.prompt_retry()
-                    return
-                except InvalidFileError:
-                    self.log(f"invalid file detected, prompting for retry")
-                    if (yield from self.prompt_retry()):
+                    try_again = yield from self.prompt_retry()
+                    if try_again:
                         continue
-                    else:
-                        return
+                    return
                 else:
                     if extraction_result is None:
                         try_again = yield from self.prompt_retry()
@@ -600,7 +758,7 @@ class DataDonationProcessor:
                 table.id,
                 table.title,
                 table.data_frame,
-                table.description,
+                None,
                 table.visualizations,
             )
             for table in data
@@ -618,7 +776,7 @@ class DataDonationProcessor:
 
         if consent_result.__type__ == "PayloadJSON":
             self.log(f"donate consent data")
-            yield donate(f"{self.session_id}-{self.platform}", consent_result.value)
+            yield donate(f"{self.sessionId}-{self.platform}", consent_result.value)
 
 
 class DataDonation:
@@ -634,15 +792,13 @@ class DataDonation:
         yield from processor.process()
 
 
-tik_tok_data_donation = DataDonation(
-    "TikTok", "application/zip, text/plain, application/json", extract_tiktok_data
-)
+data_donation = DataDonation("Instagram", "application/zip", extract_data)
 
 
 def process(session_id):
     progress = 0
     yield donate(f"{session_id}-tracking", '[{ "message": "user entered script" }]')
-    yield from tik_tok_data_donation(session_id)
+    yield from data_donation(session_id)
     yield render_end_page()
 
 
@@ -662,8 +818,8 @@ def render_donation_page(platform, body, progress):
 def retry_confirmation(platform):
     text = props.Translatable(
         {
-            "en": "Unfortunately, we cannot process your data. Please make sure that you selected JSON as a file format when downloading your data from TikTok.",
-            "nl": "Helaas kunnen we uw gegevens niet verwerken. Zorg ervoor dat u JSON heeft geselecteerd als bestandsformaat bij het downloaden van uw gegevens van TikTok.",
+            "en": f"Unfortunately, we cannot process your data. Please make sure that you selected a zip file, and JSON as a file format when downloading your data from Instagram.",
+            "nl": f"Helaas, kunnen we uw {platform} bestand niet verwerken. Weet u zeker dat u het juiste bestand heeft gekozen? Ga dan verder. Probeer opnieuw als u een ander bestand wilt kiezen.",
         }
     )
     ok = props.Translatable({"en": "Try again", "nl": "Probeer opnieuw"})
@@ -695,6 +851,6 @@ if __name__ == "__main__":
     import sys
 
     if len(sys.argv) > 1:
-        print(extract_tiktok_data(sys.argv[1]))
+        print(extract_data(sys.argv[1]))
     else:
         print("please provide a zip file as argument")
