@@ -166,7 +166,6 @@ export const ConsentForm = (props: Props): JSX.Element => {
     return _.fromPairs(_.zip(keys, values))
   }
 
-  console.log(description)
   return (
     <>
       <div className="max-w-3xl">
@@ -208,7 +207,6 @@ interface Copy {
 }
 
 function prepareCopy({ donateQuestion, donateButton, description, locale }: Props): Copy {
-  console.log(description)
   return {
     description: Translator.translate(description ?? defaultDescription, locale),
     donateQuestion: Translator.translate(donateQuestion ?? defaultDonateQuestionLabel, locale),
