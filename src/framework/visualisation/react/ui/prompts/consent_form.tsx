@@ -170,7 +170,7 @@ export const ConsentForm = (props: Props): JSX.Element => {
     <>
       <div className="max-w-3xl">
         {description.split("\n").map((line, index) => (
-          <BodyLarge key={"description" + index} text={line} />
+          <BodyLarge key={"description" + String(index)} text={line} />
         ))}
       </div>
       <div className="flex flex-col gap-16 w-full">
