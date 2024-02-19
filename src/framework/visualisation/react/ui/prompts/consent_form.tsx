@@ -111,6 +111,7 @@ export const ConsentForm = (props: Props): JSX.Element => {
       originalBody: body,
       deletedRows: [],
       visualizations: tableData.visualizations,
+      folded: tableData.folded || false,
     }
   }
 

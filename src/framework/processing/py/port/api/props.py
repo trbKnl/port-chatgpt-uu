@@ -102,6 +102,7 @@ class PropsUIPromptConsentFormTable:
     data_frame: pd.DataFrame
     description: Optional[Translatable] = None
     visualizations: Optional[list] = None
+    folded: Optional[bool] = False
 
     def toDict(self):
         dict = {}
@@ -111,6 +112,7 @@ class PropsUIPromptConsentFormTable:
         dict["data_frame"] = self.data_frame.to_json()
         dict["description"] = self.description.toDict() if self.description else None
         dict["visualizations"] = self.visualizations if self.visualizations else None
+        dict["folded"] = self.folded
         return dict
 
 
@@ -221,7 +223,12 @@ class PropsUIPageDonation:
 
     platform: str
     header: PropsUIHeader
-    body: PropsUIPromptRadioInput | PropsUIPromptConsentForm | PropsUIPromptFileInput | PropsUIPromptConfirm
+    body: (
+        PropsUIPromptRadioInput
+        | PropsUIPromptConsentForm
+        | PropsUIPromptFileInput
+        | PropsUIPromptConfirm
+    )
     footer: PropsUIFooter
 
     def toDict(self):
