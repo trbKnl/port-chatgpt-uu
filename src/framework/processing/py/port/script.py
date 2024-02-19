@@ -847,17 +847,7 @@ def prompt_consent(id, data, meta_data):
         "log_messages", log_title, meta_frame
     )
 
-    description = (
-        "Determine whether you would like to donate the data below. Carefully check the data and adjust when required. ",
-        "With your donation you contribute to the previously described research. Thank you in advance.\n\n",
-        "The tables below list the types of data that you can donate from your Instagram package. Please note that you are only donating ",
-        "information about the number of followers, likes, comments, posts, and messages you have sent or received. You will only donate ",
-        "anonymous data. So no information about the content of your posts, messages, or comments is included. You will also not share any ",
-        "information about who you interact with on Instagram (e.g., follow, like, comment on). If you DO NOT want to donate any of the information ",
-        "in the table below, you can select the row and delete it from your data donation in the table below.",
-    )
-
-    return props.PropsUIPromptConsentForm([table], [meta_table], description)
+    return props.PropsUIPromptConsentForm([table], [meta_table])
 
 
 def donate(key, json_string):
