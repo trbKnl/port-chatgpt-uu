@@ -44,7 +44,7 @@ export function formatDate(
       const year = date.getFullYear().toString();
       const month = date.toLocaleString("default", { month: "short" });
       const day = date.getDate().toString();
-      const hour = date.toISOString().split("T")[1].split(":")[0];
+      const hour = date.getHours();
       return `${year}-${month}-${day} ${hour}:00`;
     };
   }
