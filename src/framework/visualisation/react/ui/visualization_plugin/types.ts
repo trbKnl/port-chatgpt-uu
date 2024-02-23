@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { z } from "zod"
 
 // In order to work towards making visualizations a plugin, we postpone type checking
 // until the visualization is actually used. We use zod to define every type, so that
@@ -9,30 +9,30 @@ import { z } from "zod";
 // duplicating the types here. Currently opting for duplication to avoid complexity
 // (and if input format changes, the plugin would break regardless)
 
-export const zTranslatable = z.record(z.string());
-export type Translatable = z.infer<typeof zTranslatable>;
+export const zTranslatable = z.record(z.string())
+export type Translatable = z.infer<typeof zTranslatable>
 
-export const zLabel = z.union([zTranslatable, z.string()]);
-export type Label = z.infer<typeof zLabel>;
+export const zLabel = z.union([zTranslatable, z.string()])
+export type Label = z.infer<typeof zLabel>
 
 // Table type, but only taking what we need
 export const zTable = z.object({
   id: z.string(),
   head: z.object({ cells: z.array(z.string()) }),
   body: z.object({ rows: z.array(z.object({ id: z.string(), cells: z.array(z.string()) })) }),
-});
-export type Table = z.infer<typeof zTable>;
+})
+export type Table = z.infer<typeof zTable>
 
 // Visualization Types
 
 export const zVisualizationProps = z.object({
   title: zTranslatable,
   height: z.number().optional(),
-});
-export type VisualizationProps = z.infer<typeof zVisualizationProps>;
+})
+export type VisualizationProps = z.infer<typeof zVisualizationProps>
 
-export const zAggregationFunction = z.enum(["count", "mean", "sum", "count_pct", "pct"]);
-export type AggregationFunction = z.infer<typeof zAggregationFunction>;
+export const zAggregationFunction = z.enum(["count", "mean", "sum", "count_pct", "pct"])
+export type AggregationFunction = z.infer<typeof zAggregationFunction>
 
 export const zDateFormat = z.enum([
   "auto",
@@ -44,14 +44,14 @@ export const zDateFormat = z.enum([
   "month_cycle",
   "weekday_cycle",
   "hour_cycle",
-]);
-export type DateFormat = z.infer<typeof zDateFormat>;
+])
+export type DateFormat = z.infer<typeof zDateFormat>
 
-export const zChartVisualizationType = z.enum(["line", "bar", "area"]);
-export type ChartVisualizationType = z.infer<typeof zChartVisualizationType>;
+export const zChartVisualizationType = z.enum(["line", "bar", "area"])
+export type ChartVisualizationType = z.infer<typeof zChartVisualizationType>
 
-export const zTextVisualizationType = z.enum(["wordcloud"]);
-export type TextVisualizationType = z.infer<typeof zTextVisualizationType>;
+export const zTextVisualizationType = z.enum(["wordcloud"])
+export type TextVisualizationType = z.infer<typeof zTextVisualizationType>
 
 // Chart Visualizations
 
@@ -59,8 +59,8 @@ export type TextVisualizationType = z.infer<typeof zTextVisualizationType>;
 export const zAxis = z.object({
   label: zLabel.optional(),
   column: z.string(),
-});
-export type Axis = z.infer<typeof zAxis>;
+})
+export type Axis = z.infer<typeof zAxis>
 
 export const zAggregationGroup = z.object({
   label: zLabel.optional(),
@@ -68,8 +68,8 @@ export const zAggregationGroup = z.object({
   dateFormat: zDateFormat.optional(),
   range: z.array(z.number()).optional(),
   levels: z.array(z.string()).optional(),
-});
-export type AggregationGroup = z.infer<typeof zAggregationGroup>;
+})
+export type AggregationGroup = z.infer<typeof zAggregationGroup>
 
 export const zAggregationValue = z.object({
   label: zLabel.optional(),
@@ -79,8 +79,8 @@ export const zAggregationValue = z.object({
   z: z.string().optional(),
   zAggregate: zAggregationFunction.optional(),
   addZeroes: z.boolean().optional(),
-});
-export type AggregationValue = z.infer<typeof zAggregationValue>;
+})
+export type AggregationValue = z.infer<typeof zAggregationValue>
 
 export const zChartVisualization = zVisualizationProps.merge(
   z.object({
@@ -88,25 +88,25 @@ export const zChartVisualization = zVisualizationProps.merge(
     group: zAggregationGroup,
     values: z.array(zAggregationValue),
   })
-);
-export type ChartVisualization = z.infer<typeof zChartVisualization>;
+)
+export type ChartVisualization = z.infer<typeof zChartVisualization>
 
 // Internal types
-export type TickerFormat = "percent" | "default";
-export type XType = "string" | "date";
+export type TickerFormat = "percent" | "default"
+export type XType = "string" | "date"
 
 export interface AxisSettings {
-  id: string;
-  label: Translatable | string;
-  tickerFormat: TickerFormat;
+  id: string
+  label: Translatable | string
+  tickerFormat: TickerFormat
 }
 
 export interface ChartVisualizationData {
-  type: ChartVisualizationType;
-  data: Array<Record<string, any>>;
-  xKey: string;
-  xLabel: string | Translatable | undefined;
-  yKeys: Record<string, AxisSettings>;
+  type: ChartVisualizationType
+  data: Array<Record<string, any>>
+  xKey: string
+  xLabel: string | Translatable | undefined
+  yKeys: Record<string, AxisSettings>
 }
 
 // Text Visualizations
@@ -121,26 +121,26 @@ export const zTextVisualization = zVisualizationProps.merge(
     tokenize: z.boolean().optional(),
     extract: z.enum(["url_domain"]).optional(),
   })
-);
-export type TextVisualization = z.infer<typeof zTextVisualization>;
+)
+export type TextVisualization = z.infer<typeof zTextVisualization>
 
 // Internal types
 
 export interface ScoredTerm {
-  text: string;
-  value: number;
-  importance: number;
-  rowIds?: string[];
+  text: string
+  value: number
+  importance: number
+  rowIds?: string[]
 }
 
 export interface TextVisualizationData {
-  type: TextVisualizationType;
-  topTerms: ScoredTerm[];
+  type: TextVisualizationType
+  topTerms: ScoredTerm[]
 }
 
 // Visualization Type union
 
-export type VisualizationData = ChartVisualizationData | TextVisualizationData;
+export type VisualizationData = ChartVisualizationData | TextVisualizationData
 
-export const zVisualizationType = z.union([zChartVisualization, zTextVisualization]);
-export type VisualizationType = z.infer<typeof zVisualizationType>;
+export const zVisualizationType = z.union([zChartVisualization, zTextVisualization])
+export type VisualizationType = z.infer<typeof zVisualizationType>
