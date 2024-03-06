@@ -10,7 +10,7 @@ Port is part of a research tool that enables individuals to donate their digital
 
 Data donation allows researchers to invite participants to share their data download packages (DDPs).
 A major challenge is however that DDPs potentially contain very sensitive data, and often not all data is needed to answer the specific research question under investigation.
-To circumvent these challenges, an alternative framework was developed:
+To circumvent these challenges, the following framework framework was developed:
 
 1. The research participant requests their personal DDP at the platform of interest.
 2. They download it onto their own personal device.
@@ -75,7 +75,7 @@ We recommend you use that script as starting point for your own data donation st
 Check out the wiki for a tutorial on how to start writing your own `script.py`.
 
 
-## Installation
+## Installation of Port
 
 In order to start a local instance of Port go through the following steps:
 
