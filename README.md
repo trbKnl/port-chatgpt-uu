@@ -4,7 +4,7 @@
   </a>
 </p>
 
-# Port: A frontend for data donation
+# Port: A frontend for data donation studies built for Next
 
 Port is part of a research tool that enables individuals to donate their digital trace data for academic research in a secure, transparent, and privacy-preserving way.
 
@@ -17,22 +17,31 @@ To circumvent these challenges, an alternative framework was developed:
 3. By means of local processing (i.e. in the browser of the participant) only the features of interest to the researcher are extracted from that DDP.
 4. The participant inspects the extracted features after which they can consent (or decline) to donate.
 
-To allow for the local processing (step 3) to take place, we developed the software Port.
-Port creates a frontend that guides participants through the data donation steps.
-
-Port is open-source and allows for researchers to fully configure their own data donation study.
+To allow for step 3 and 4 to take place, we developed the software Port. Port creates a frontend that guides participants through the data donation steps.
+Port is primarily created to be used in conjunction with [Next](https://github.com/eyra/mono). 
+Next is a software as a service platform developed by [Eyra](https://eyra.co/) to facilitate scientic research.
 
 
 ## How does Port work?
 
 **The idea behind Port**
 
-Port is in essence a toolkit with which you can build your own data donation flow.
+Port is in essence a toolkit with which you can build your own data donation flow. The donation flow is at the heart of Port, and is at the core of a data donation study. 
+It is the step where the participant is actually going to donate their data.
 
-This toolkit approach has several benefits:
+The data donation flow goes as follows:
+
+1. The participant goes to your Port app in a browser
+2. The participant is prompted to submit their data download package (DDP)
+3. A Python script you wrote, extracts the data you need for your research
+4. That data gets presented to the participant on screen
+5. The participants decides to donate and you receive the data 
+
+We opted for a toolkit approach because it offers several benefits:
 
 1. Every study requires unique elements for its participants, and a toolkit can facilitate the creation of this distinct experience.
 2. You can extract (and possibly aggregate) only the data you need for your study, which we believe is important in order to preserve the privacy of the participant and is often required by an ethical review board.
+
 
 **The design of Port**
 
@@ -44,6 +53,7 @@ On a high level the script works as follows:
 1. The Python script determines which user interface (UI) component needs to be shown to the participant
 2. The participant interacts with the UI component on screen. Whenever the participant is done interacting with the UI component, the result of that interaction is returned to the script.
 3. The script handles the return result en determine the next UI component that the participant needs to see or interact with, go back to step 1 until the end of the donation flow.
+
 
 **Creating your own study**
 
@@ -90,7 +100,9 @@ In order to start a local instance of Port go through the following steps:
 
 3. You can now go to the browser: [`http://localhost:3000`](http://localhost:3000).
 
-If the installation went correctly you should be greeted with a mock data donation study. For detailed installation instructions see the wiki.
+If the installation went correctly you should be greeted with a mock data donation study. 
+For detailed installation instructions see the wiki.
+
 
 
 ## Feldspar and Next
@@ -98,7 +110,8 @@ If the installation went correctly you should be greeted with a mock data donati
 Port is primarily created to be used in conjunction with [Next](https://github.com/eyra/mono). Next is a software as a service platform developed by [Eyra](https://eyra.co/) to facilitate scientic research.
 Port is built with [Feldspar](https://github.com/eyra/feldspar). Feldspar is a framework which can be used to build applications specifically for Next. An example of such an application is Port which you can find in this repository.
 
-_Note_: Port is only a *frontend* to be used with Next. In order for it to be used in a live study it needs to be hosted with Next. The wiki will discuss a
+_Note_: Port is only a *frontend* to be used with Next. In order for it to be used in a live study it needs to be hosted with Next. 
+The wiki will discuss the options you have for using Port in an actual study.
 
 
 ## Contributing
