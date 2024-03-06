@@ -1,5 +1,9 @@
 import { isInstanceOf } from "../helpers"
-import { PropsUIRadioItem, Text } from "./elements"
+import {
+  PropsUIRadioItem,
+  PropsUIQuestionMultipleChoice,
+  Text
+} from './elements'
 
 export type PropsUIPrompt =
   | PropsUIPromptFileInput
@@ -8,7 +12,12 @@ export type PropsUIPrompt =
   | PropsUIPromptConfirm
 
 export function isPropsUIPrompt(arg: any): arg is PropsUIPrompt {
-  return isPropsUIPromptFileInput(arg) || isPropsUIPromptRadioInput(arg) || isPropsUIPromptConsentForm(arg)
+  return (
+    isPropsUIPromptFileInput(arg) ||
+    isPropsUIPromptRadioInput(arg) ||
+    isPropsUIPromptConsentForm(arg) ||
+    isPropsUIPromptQuestionnaire(arg)
+  )
 }
 
 export interface PropsUIPromptConfirm {
@@ -68,3 +77,12 @@ export function isPropsUIPromptConsentFormTable(arg: any): arg is PropsUIPromptC
     "data_frame",
   ])
 }
+
+ export interface PropsUIPromptQuestionnaire {
+  __type__: 'PropsUIPromptQuestionnaire'
+  questions: PropsUIQuestionMultipleChoice[]
+  description: Text
+ }
+ export function isPropsUIPromptQuestionnaire (arg: any): arg is PropsUIPromptQuestionnaire {
+  return isInstanceOf<PropsUIPromptQuestionnaire>(arg, 'PropsUIPromptQuestionnaire', ['questions', 'description'])
+ }
