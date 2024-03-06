@@ -11,12 +11,14 @@ import {
 export type PropsUIPage =
   PropsUIPageSplashScreen |
   PropsUIPageDonation |
-  PropsUIPageEnd
+  PropsUIPageEnd |
+  PropsUIPageError
 
 export function isPropsUIPage (arg: any): arg is PropsUIPage {
   return (
     isPropsUIPageDonation(arg) ||
-    isPropsUIPageEnd(arg)
+    isPropsUIPageEnd(arg) ||
+    isPropsUIPageError(arg)
   )
 }
 
@@ -39,4 +41,12 @@ export interface PropsUIPageEnd {
 }
 export function isPropsUIPageEnd (arg: any): arg is PropsUIPageEnd {
   return isInstanceOf<PropsUIPageEnd>(arg, 'PropsUIPageEnd', [])
+}
+
+export interface PropsUIPageError {
+  __type__: 'PropsUIPageError'
+  stacktrace: string
+}
+export function isPropsUIPageError (arg: any): arg is PropsUIPageError {
+  return isInstanceOf<PropsUIPageError>(arg, 'PropsUIPageError', ['stacktrace'])
 }
