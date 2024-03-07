@@ -28,7 +28,6 @@ onmessage = (event) => {
 
 function runCycle(payload) {
   console.log('[ProcessingWorker] runCycle ' + JSON.stringify(payload))
-  scriptEvent = pyScript.send(payload)
   try {
     scriptEvent = pyScript.send(payload)
     self.postMessage({
