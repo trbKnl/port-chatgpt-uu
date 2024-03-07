@@ -1,7 +1,8 @@
 import React from 'react';
 import { ReactFactoryContext } from '../../factory'
 import { Weak } from '../../../../helpers'
-import { LabelButton, PrimaryButton } from '../elements/button'
+import TextBundle from '../../../../text_bundle'
+import { PrimaryButton } from '../elements/button'
 import { PropsUIPromptQuestionnaire } from '../../../../types/prompts'
 import { Translator } from '../../../../translator'
 import { isPropsUIQuestionMultipleChoice } from '../../../../types/elements'
@@ -74,15 +75,16 @@ export const Questionnaire = (props: Props): JSX.Element => {
         {renderQuestions()}
       </div>
       <div className='flex flex-row gap-4 mt-4 mb-4'>
-        <PrimaryButton label="DONATE" onClick={handleDonate} color='bg-success text-white' />
-        <LabelButton label="CANCEL" onClick={handleCancel} color='text-grey1' />
+        <PrimaryButton label={copy.continueLabel} onClick={handleDonate} color='bg-success text-white' />
       </div>
     </div>
   );
 
+        
   function prepareCopy (locale: string): Copy {
     return {
-      description: Translator.translate(description, locale)
+      description: Translator.translate(description, locale),
+      continueLabel: Translator.translate(continueLabel, locale)
     }
   }
 };
@@ -90,4 +92,10 @@ export const Questionnaire = (props: Props): JSX.Element => {
 
 interface Copy {
   description: string
+  continueLabel: string
 }
+
+
+const continueLabel = new TextBundle()
+  .add('en', 'Continue')
+  .add('nl', 'Verder')
