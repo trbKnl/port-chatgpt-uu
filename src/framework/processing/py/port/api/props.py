@@ -51,12 +51,9 @@ class PropsUIFooter:
         progressPercentage: float indicating the progress in the flow
     """
 
-    progressPercentage: float
-
     def toDict(self):
         dict = {}
         dict["__type__"] = "PropsUIFooter"
-        dict["progressPercentage"] = self.progressPercentage
         return dict
 
 
@@ -298,7 +295,7 @@ class PropsUIPageDonation:
         | PropsUIPromptConfirm
         | PropsUIPromptQuestionnaire
     )
-    footer: PropsUIFooter
+    footer: Optional[PropsUIFooter] = None
 
     def toDict(self):
         dict = {}
@@ -306,7 +303,7 @@ class PropsUIPageDonation:
         dict["platform"] = self.platform
         dict["header"] = self.header.toDict()
         dict["body"] = self.body.toDict()
-        dict["footer"] = self.footer.toDict()
+        dict["footer"] = self.footer.toDict() if self.footer else None
         return dict
 
 

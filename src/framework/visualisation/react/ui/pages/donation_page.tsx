@@ -52,7 +52,8 @@ export const DonationPage = (props: Props): JSX.Element => {
     resolve?.({ __type__: 'PayloadFalse', value: false })
   }
 
-  function renderFooter (): JSX.Element {
+  function renderFooter (props: Props): JSX.Element | undefined {
+    if (props.footer != null) {
       return <Footer
       right={
         <div className='flex flex-row'>
@@ -60,11 +61,14 @@ export const DonationPage = (props: Props): JSX.Element => {
           <ForwardButton label={forwardButton} onClick={handleSkip} />
         </div>
       } />
+    } else {
+      return undefined
+    }
   }
 
   const footer: JSX.Element = (
     <>
-      {renderFooter()}
+      {renderFooter(props)}
     </>
   )
 
