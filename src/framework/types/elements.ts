@@ -426,6 +426,14 @@ export function isTranslatable(arg: any): arg is Translatable {
   return isLike<Translatable>(arg, ["translations"])
 }
 
+// FOOTER
+
+export interface PropsUIFooter {
+  __type__: 'PropsUIFooter'
+}
+export function isPropsUIFooter (arg: any): arg is PropsUIFooter {
+  return isInstanceOf<PropsUIFooter>(arg, 'PropsUIFooter', [])
+}
 
 // QUESTION ITEMS
 

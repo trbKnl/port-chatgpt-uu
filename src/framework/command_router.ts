@@ -24,12 +24,7 @@ export default class CommandRouter implements CommandHandler {
 
   onCommandSystem (command: CommandSystem, resolve: (response: Response) => void): void {
     this.bridge.send(command)
-
-    if (isCommandSystemExit(command)) {
-      console.log('[CommandRouter] Application exit')
-    } else {
-      resolve({ __type__: 'Response', command, payload: { __type__: 'PayloadVoid', value: undefined } })
-    }
+    resolve({ __type__: 'Response', command, payload: { __type__: 'PayloadVoid', value: undefined } })
   }
 
   onCommandUI (command: CommandUI, reject: (reason?: any) => void): void {

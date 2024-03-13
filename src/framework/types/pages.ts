@@ -1,5 +1,8 @@
 import { isInstanceOf } from '../helpers'
-import { PropsUIHeader } from './elements'
+import { 
+    PropsUIHeader,
+    PropsUIFooter
+} from './elements'
 import { 
     PropsUIPromptFileInput, 
     PropsUIPromptConfirm,
@@ -31,6 +34,7 @@ export interface PropsUIPageDonation {
   platform: string
   header: PropsUIHeader
   body: PropsUIPromptFileInput | PropsUIPromptConfirm | PropsUIPromptConsentForm | PropsUIPromptRadioInput | PropsUIPromptQuestionnaire
+  footer: PropsUIFooter
 }
 export function isPropsUIPageDonation (arg: any): arg is PropsUIPageDonation {
   return isInstanceOf<PropsUIPageDonation>(arg, 'PropsUIPageDonation', ['platform', 'header', 'body'])
