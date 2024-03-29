@@ -150,11 +150,33 @@ def generate_file_prompt(platform, extensions) -> props.PropsUIPromptFileInput:
 
 def generate_consent_prompt(df: pd.DataFrame) -> props.PropsUIPromptConsentForm:
     table_title = props.Translatable({
-        "en": "Zip file contents",
-        "nl": "Inhoud zip bestand"
+        "en": "The contents of your zipfile contents",
+        "nl": "De inhoud van uw zip bestand"
     })
+
+    description = props.Translatable({
+       "en": "Below you will find meta data about the contents of the zip file you submitted. Please review the data carefully and remove any information you do not wish to share. If you would like to share this data, click on the 'Yes, share for research' button at the bottom of this page. By sharing this data, you contribute to research <insert short explanation about your research here>.",
+       "nl": "Hieronder ziet u gegevens over de zip die u heeft ingediend. Bekijk de gegevens zorgvuldig, en verwijder de gegevens die u niet wilt delen. Als u deze gegevens wilt delen, klik dan op de knop 'Ja, deel voor onderzoek' onderaan deze pagina. Door deze gegevens te delen draagt u bij aan onderzoek over <korte zin over het onderzoek>."
+    })
+
+    donate_question = props.Translatable({
+       "en": "Do you want to share this data for research?",
+       "nl": "Wilt u deze gegevens delen voor onderzoek?"
+    })
+
+    donate_button = props.Translatable({
+       "en": "Yes, share for research",
+       "nl": "Ja, deel voor onderzoek"
+    })
+
     table = props.PropsUIPromptConsentFormTable("zip_contents", table_title, df)
-    return props.PropsUIPromptConsentForm([table], [])
+    return props.PropsUIPromptConsentForm(
+       [table], 
+       [],
+       description = description,
+       donate_question = donate_question,
+       donate_button = donate_button
+    )
 
 
 def donate(key, json_string):
