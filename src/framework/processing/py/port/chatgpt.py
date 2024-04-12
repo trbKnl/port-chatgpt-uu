@@ -90,7 +90,8 @@ def conversations_to_df(chatgpt_zip: str)  -> pd.DataFrame:
                         "model": model,
                         "time": time,
                     }
-                    datapoints.append(datapoint)
+                    if role != "":
+                        datapoints.append(datapoint)
 
         out = pd.DataFrame(datapoints)
 
